@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Downloader</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>YouTube Downloader</h1>
+            <p>Unduh audio atau video favorit Anda dengan kualitas pilihan.</p>
+        </header>
+        
+        <main>
+            <div class="config-card">
+                <div class="input-group">
+                    <input type="text" id="youtube-url" placeholder="Tempel link YouTube di sini...">
+                    <button id="download-btn">Mulai Unduh</button>
+                </div>
+
+                <div class="options-grid">
+                    <div class="option-item">
+                        <label>Format</label>
+                        <select id="mode-select">
+                            <option value="mp3">Audio (MP3)</option>
+                            <option value="mp4">Video (MP4)</option>
+                        </select>
+                    </div>
+                    <div class="option-item">
+                        <label>Kualitas</label>
+                        <select id="quality-select">
+                            <!-- Content populated by JS -->
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="status-container" class="hidden">
+                <div id="loader" class="loader hidden"></div>
+                <p id="status-text"></p>
+            </div>
+            
+            <div id="result-container" class="hidden">
+                <div class="result-card">
+                    <span id="song-title"></span>
+                    <a id="download-link" href="#" class="btn-download">Simpan ke Penyimpanan</a>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const downloadBtn = document.getElementById('download-btn');
+        const urlInput = document.getElementById('youtube-url');
+        const modeSelect = document.getElementById('mode-select');
+        const qualitySelect = document.getElementById('quality-select');
+        const statusContainer = document.getElementById('status-container');
+        const statusText = document.getElementById('status-text');
+        const loader = document.getElementById('loader');
+        const resultContainer = document.getElementById('result-container');
+        const songTitle = document.getElementById('song-title');
+        const downloadLink = document.getElementById('download-link');
+
+        const qualityOptions = {
+            mp3: ['128', '192', '320'],
+            mp4: ['best', '720', '480']
+        };
+
+        function updateQualityDropdown() {
+            const mode = modeSelect.value;
+            qualitySelect.innerHTML = '';
+            qualityOptions[mode].forEach(q => {
+                const opt = document.createElement('option');
+                opt.value = q;
+                opt.textContent = mode === 'mp3' ? q + 'kbps' : (q === 'best' ? 'Terbaik' : q + 'p');
+                qualitySelect.appendChild(opt);
+            });
+        }
+
+        modeSelect.onchange = updateQualityDropdown;
+        updateQualityDropdown();
+
+        downloadBtn.onclick = async () => {
+            const url = urlInput.value.trim();
+            if (!url) return alert('Mohon masukkan URL YouTube!');
+
+            statusContainer.classList.remove('hidden');
+            resultContainer.classList.add('hidden');
+            loader.classList.remove('hidden');
+            statusText.textContent = 'Sedang memproses media...';
+            downloadBtn.disabled = true;
+
+            try {
+                const response = await fetch('/download', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        url, 
+                        mode: modeSelect.value, 
+                        quality: qualitySelect.value 
+                    })
+                });
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    statusText.textContent = 'Selesai!';
+                    loader.classList.add('hidden');
+                    resultContainer.classList.remove('hidden');
+                    songTitle.textContent = data.title;
+                    downloadLink.href = data.file_url;
+                } else {
+                    throw new Error(data.message || 'Terjadi kesalahan');
+                }
+            } catch (e) {
+                statusText.textContent = 'Error: ' + e.message;
+                loader.classList.add('hidden');
+            } finally {
+                downloadBtn.disabled = false;
+            }
+        };
+    </script>
+</body>
+</html>
