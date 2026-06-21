@@ -5,10 +5,10 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor
 
 app = Flask(__name__, 
-            static_folder='/home/hika/youtube-to-mp3/static', 
-            template_folder='/home/hika/youtube-to-mp3/static')
+            static_folder='static', 
+            template_folder='static')
 
-DOWNLOAD_FOLDER = '/home/hika/youtube-to-mp3/downloads'
+DOWNLOAD_FOLDER = os.path.join('/tmp', 'downloads')
 
 # Global executor for background downloads
 executor = ThreadPoolExecutor(max_workers=4)

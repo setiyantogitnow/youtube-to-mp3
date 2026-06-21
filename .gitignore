@@ -8,8 +8,12 @@ env/
 
 # Application specific
 downloads/
+.env
 
 # OS
 .DS_Store
 Thumbs.db
+
+# Vercel
+.vercel/
 tests/
