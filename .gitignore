@@ -9,6 +9,7 @@ env/
 # Application specific
 downloads/
 .env
+cookies.txt
 
 # OS
 .DS_Store

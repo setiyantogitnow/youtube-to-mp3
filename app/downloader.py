@@ -11,6 +11,19 @@ def download_media(url, mode='mp3', quality='192', output_path='downloads'):
     if not os.path.exists(output_path):
         os.makedirs(output_path)
 
+    # Handle Cookies for Bot Detection (Vercel Deployment)
+    cookie_path = 'cookies.txt'
+    cookies_env = os.environ.get('YOUTUBE_COOKIES')
+    if cookies_env:
+        # Write env var content to a temporary file in /tmp
+        cookie_path = os.path.join('/tmp', 'cookies.txt')
+        with open(cookie_path, 'w') as f:
+            f.write(cookies_env)
+    elif not os.path.exists('cookies.txt'):
+        # If no env var and no local file, we just proceed and hope for the best
+        # but we set it to None to avoid yt-dlp looking for a non-existent file
+        cookie_path = None
+
     if mode == 'original':
         # Lossless/Direct Stream: Get the best audio without re-encoding
         ydl_opts = {
@@ -19,6 +32,8 @@ def download_media(url, mode='mp3', quality='192', output_path='downloads'):
             'quiet': True,
             'no_warnings': True,
         }
+        if cookie_path:
+            ydl_opts['cookiefile'] = cookie_path
     elif mode == 'mp3':
         # Lossy: Convert to MP3
         ydl_opts = {
@@ -32,6 +47,8 @@ def download_media(url, mode='mp3', quality='192', output_path='downloads'):
             'quiet': True,
             'no_warnings': True,
         }
+        if cookie_path:
+            ydl_opts['cookiefile'] = cookie_path
     else: # mode == 'mp4'
         quality_map = {
             'best': 'bestvideo+bestaudio/best',
@@ -47,6 +64,8 @@ def download_media(url, mode='mp3', quality='192', output_path='downloads'):
             'quiet': True,
             'no_warnings': True,
         }
+        if cookie_path:
+            ydl_opts['cookiefile'] = cookie_path
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
