@@ -24,6 +24,7 @@
                     <div class="option-item">
                         <label>Format</label>
                         <select id="mode-select">
+                            <option value="original">Audio (Lossless/Terbaik)</option>
                             <option value="mp3">Audio (MP3)</option>
                             <option value="mp4">Video (MP4)</option>
                         </select>
@@ -64,6 +65,7 @@
         const downloadLink = document.getElementById('download-link');
 
         const qualityOptions = {
+            original: ['best'],
             mp3: ['128', '192', '320'],
             mp4: ['best', '720', '480']
         };
@@ -74,13 +76,33 @@
             qualityOptions[mode].forEach(q => {
                 const opt = document.createElement('option');
                 opt.value = q;
-                opt.textContent = mode === 'mp3' ? q + 'kbps' : (q === 'best' ? 'Terbaik' : q + 'p');
+                opt.textContent = (mode === 'mp3') ? q + 'kbps' : (q === 'best' ? 'Terbaik' : q + 'p');
                 qualitySelect.appendChild(opt);
             });
         }
 
         modeSelect.onchange = updateQualityDropdown;
         updateQualityDropdown();
+
+        async function pollStatus(taskId) {
+            while (true) {
+                const response = await fetch(`/status/${taskId}`);
+                const data = await response.json();
+
+                if (response.status === 200 && data.status === 'completed') {
+                    return data; // Success
+                } else if (response.status === 400 || data.status === 'error') {
+                    throw new Error(data.message || 'Terjadi kesalahan saat mengunduh');
+                } else if (data.status === 'downloading') {
+                    statusText.textContent = 'Sedang mengunduh media...';
+                } else {
+                    statusText.textContent = 'Menyiapkan antrean...';
+                }
+                
+                // Poll every 2 seconds
+                await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+        }
 
         downloadBtn.onclick = async () => {
             const url = urlInput.value.trim();
@@ -89,7 +111,7 @@
             statusContainer.classList.remove('hidden');
             resultContainer.classList.add('hidden');
             loader.classList.remove('hidden');
-            statusText.textContent = 'Sedang memproses media...';
+            statusText.textContent = 'Memulai proses...';
             downloadBtn.disabled = true;
 
             try {
@@ -104,14 +126,17 @@
                 });
                 const data = await response.json();
 
-                if (data.status === 'success') {
+                if (response.status === 202 && data.task_id) {
+                    // Start polling for the background task
+                    const result = await pollStatus(data.task_id);
+                    
                     statusText.textContent = 'Selesai!';
                     loader.classList.add('hidden');
                     resultContainer.classList.remove('hidden');
-                    songTitle.textContent = data.title;
-                    downloadLink.href = data.file_url;
+                    songTitle.textContent = result.title;
+                    downloadLink.href = result.file_url;
                 } else {
-                    throw new Error(data.message || 'Terjadi kesalahan');
+                    throw new Error(data.message || 'Terjadi kesalahan server');
                 }
             } catch (e) {
                 statusText.textContent = 'Error: ' + e.message;

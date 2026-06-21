@@ -5,13 +5,22 @@ import re
 def download_media(url, mode='mp3', quality='192', output_path='downloads'):
     """
     Downloads media from YouTube.
-    mode: 'mp3' for audio, 'mp4' for video
+    mode: 'mp3' (lossy), 'original' (lossless/best available), 'mp4' (video)
     quality: for mp3 (128, 192, 320), for mp4 (best, 720, 480)
     """
     if not os.path.exists(output_path):
         os.makedirs(output_path)
 
-    if mode == 'mp3':
+    if mode == 'original':
+        # Lossless/Direct Stream: Get the best audio without re-encoding
+        ydl_opts = {
+            'format': 'bestaudio/best',
+            'outtmpl': f'{output_path}/%(title)s.%(ext)s',
+            'quiet': True,
+            'no_warnings': True,
+        }
+    elif mode == 'mp3':
+        # Lossy: Convert to MP3
         ydl_opts = {
             'format': 'bestaudio/best',
             'outtmpl': f'{output_path}/%(title)s.%(ext)s',
@@ -24,7 +33,6 @@ def download_media(url, mode='mp3', quality='192', output_path='downloads'):
             'no_warnings': True,
         }
     else: # mode == 'mp4'
-        # Handle video quality mapping
         quality_map = {
             'best': 'bestvideo+bestaudio/best',
             '720': 'bestvideo[height<=720]+bestaudio/best[height<=720]',
@@ -48,6 +56,9 @@ def download_media(url, mode='mp3', quality='192', output_path='downloads'):
             # Correct extension based on mode
             if mode == 'mp3':
                 final_filename = re.sub(r'\.[^.]+$', '.mp3', filename)
+            elif mode == 'original':
+                # Use the extension provided by yt-dlp (usually .m4a, .webm, or .opus)
+                final_filename = filename
             else:
                 final_filename = re.sub(r'\.[^.]+$', '.mp4', filename)
                 
